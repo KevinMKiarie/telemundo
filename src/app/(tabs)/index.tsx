@@ -23,24 +23,32 @@ export default function DiscoverScreen() {
   const [query, setQuery] = useState("");
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const delay = query.trim() ? 500 : 0;
 
     const timeout = setTimeout(async () => {
       setLoading(true);
-      const results = query.trim()
-        ? await searchMovies(query)
-        : await fetchTrending();
-      setMovies(results);
-      setLoading(false);
+      setError(null);
+      try {
+        const results = query.trim()
+          ? await searchMovies(query)
+          : await fetchTrending();
+        setMovies(results);
+      } catch (e) {
+        setError("Failed to load movies. Check your API token.");
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
     }, delay);
 
     return () => clearTimeout(timeout);
   }, [query]);
 
   return (
-    <View className="flex-1 bg-white dark:bg-black px-3 pt-3">
+    <View className="w-full bg-white dark:bg-black px-3 pt-3">
       <TextInput
         className="bg-blue-100 dark:bg-gray-900 text-black dark:text-white rounded-full px-4 py-3 mb-4 text-base"
         placeholder="Search movies today..."
@@ -49,7 +57,11 @@ export default function DiscoverScreen() {
         onChangeText={setQuery}
       />
 
-      {loading ? (
+      {error ? (
+        <View className=" flex flex-col w-full items-center justify-center px-6">
+          <Text className="text-red-500 text-center text-base">{error}</Text>
+        </View>
+      ) : loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#E50914" />
         </View>
@@ -62,7 +74,7 @@ export default function DiscoverScreen() {
           contentContainerStyle={{ gap: 12, paddingBottom: 20 }}
           renderItem={({ item }) => (
             <Pressable
-              className="flex-1"
+              className="w-full"
               onPress={() => router.push(`/movie/${item.id}`)}
             >
               <Image
@@ -73,7 +85,7 @@ export default function DiscoverScreen() {
                 style={{ aspectRatio: 2 / 3 }}
               />
               <Text
-                className="text-black dark:text-white text-sm font-medium mt-1"
+                className="text-black  dark:text-white text-sm font-bold mt-1"
                 numberOfLines={1}
               >
                 {item.title}

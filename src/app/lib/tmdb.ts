@@ -1,7 +1,7 @@
 const BASE_URL = "https://api.themoviedb.org/3";
-const TOKEN = process.env.EXPO_PUBLIC_ACCESS_TMDB_TOKEN;
+const TOKEN = process.env.EXPO_PUBLIC_TMDB_TOKEN;
 
-export const IMAGE_URL = "https://image.tmdb.org/t/p/original";
+export const IMAGE_URL = "https://image.tmdb.org/t/p/w500";
 
 async function get(endpoint: string) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
@@ -9,7 +9,12 @@ async function get(endpoint: string) {
       Authorization: `Bearer ${TOKEN}`,
     },
   });
-  const data = response.json();
+
+  if (!response.ok) {
+    throw new Error(`TMDB ${response.status}: ${await response.text()}`);
+  }
+
+  const data = await response.json();
   return data;
 }
 

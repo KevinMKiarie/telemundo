@@ -213,14 +213,17 @@ export default function MovieDetailScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
             renderItem={({ item }: { item: CastMember }) => (
-              <View className="w-20 items-center">
+              <Pressable
+                className="w-20 items-center"
+                onPress={() => router.push(`/person/${item.id}`)}>
                 <Image
                   source={
                     item.profile_path
                       ? `${IMAGE_URL}${item.profile_path}`
                       : null
                   }
-                  className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-800"
+                  style={{ width: 80, height: 80, borderRadius: 40 }}
+                  className="bg-gray-200 dark:bg-gray-800"
                 />
                 <Text
                   className="text-black dark:text-white text-xs font-medium mt-2 text-center"
@@ -232,7 +235,7 @@ export default function MovieDetailScreen() {
                   numberOfLines={1}>
                   {item.character}
                 </Text>
-              </View>
+              </Pressable>
             )}
           />
         </View>

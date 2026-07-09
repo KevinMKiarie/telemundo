@@ -27,4 +27,5 @@ export async function removeFromWatchlist(movieId: number): Promise<void> {
 
 export async function isInWatchlist(movieId: number): Promise<boolean> {
   const current = await getWatchlist();
+  return current.includes(movieId);
 }

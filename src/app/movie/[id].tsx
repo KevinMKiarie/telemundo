@@ -255,7 +255,7 @@ export default function MovieDetailScreen() {
             renderItem={({ item }: { item: Movie }) => (
               <Pressable
                 className="w-32"
-                onPress={() => router.push(`/person/${item.id}`)}>
+                onPress={() => router.push(`/movie/${item.id}`)}>
 
                 <Image
                   source={

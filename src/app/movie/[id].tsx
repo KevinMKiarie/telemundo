@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import {
@@ -24,6 +24,7 @@ import {
 
 export default function MovieDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const movieId = Number(id);
 
   const [movie, setMovie] = useState<MovieDetail | null>(null);
@@ -251,7 +252,8 @@ export default function MovieDetailScreen() {
             renderItem={({ item }: { item: Movie }) => (
               <Pressable
                 className="w-32"
-                onPress={() => {}}>
+                onPress={() => router.push(`/person/${item.id}`)}>
+
                 <Image
                   source={
                     item.poster_path

@@ -101,6 +101,6 @@ export async function fetchPerson(id: number): Promise<Person> {
   return getCached(`/person/${id}`, TTL.PERSON);
 }
 
-export async function fetchPersonMovies(id: number): Promise<PaginatedResponse<Movie>> {
+export async function fetchPersonMovies(id: number): Promise<{ cast: Movie[]; crew: Movie[] }> {
   return getCached(`/person/${id}/movie_credits`, TTL.PERSON);
 }

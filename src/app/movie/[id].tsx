@@ -1,50 +1,67 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
+import { openBrowserAsync } from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Pressable,
   ScrollView,
+  Share,
   Text,
   View,
 } from 'react-native';
+import type { CastMember, Credits, Movie, MovieDetail, Video } from '../../types/tmdb';
 import { addToWatchlist, isInWatchlist, removeFromWatchlist } from '../lib/storage';
-import { fetchMovieDetails } from '../lib/tmdb';
-
-const IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
-
-type MovieDetail = {
-  id: number;
-  title: string;
-  overview: string;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  vote_average: number;
-  release_date: string;
-  runtime: number;
-  genres: { id: number; name: string }[];
-  tagline: string;
-};
+import {
+  BACKDROP_URL,
+  IMAGE_URL,
+  fetchMovieCredits,
+  fetchMovieDetails,
+  fetchMovieVideos,
+  fetchSimilarMovies,
+} from '../lib/tmdb';
 
 export default function MovieDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const movieId = Number(id);
+
   const [movie, setMovie] = useState<MovieDetail | null>(null);
+  const [credits, setCredits] = useState<Credits | null>(null);
+  const [similar, setSimilar] = useState<Movie[]>([]);
+  const [trailer, setTrailer] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);
   const [inWatchlist, setInWatchlist] = useState(false);
 
   useEffect(() => {
     async function load() {
       try {
-        const data = await fetchMovieDetails(Number(id));
-        setMovie(data);
-        const saved = await isInWatchlist(Number(id));
+        const [details, creds, videos, similarMovies, saved] = await Promise.all([
+          fetchMovieDetails(movieId),
+          fetchMovieCredits(movieId),
+          fetchMovieVideos(movieId),
+          fetchSimilarMovies(movieId),
+          isInWatchlist(movieId),
+        ]);
+
+        setMovie(details);
+        setCredits(creds);
+        setSimilar(similarMovies.results.slice(0, 10));
         setInWatchlist(saved);
+
+        const officialTrailer = videos.results.find(
+          (v) => v.site === 'YouTube' && v.type === 'Trailer' && v.official
+        ) ?? videos.results.find(
+          (v) => v.site === 'YouTube' && v.type === 'Trailer'
+        ) ?? null;
+
+        setTrailer(officialTrailer);
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [id]);
+  }, [movieId]);
 
   async function toggleWatchlist() {
     if (!movie) return;
@@ -55,6 +72,19 @@ export default function MovieDetailScreen() {
       await addToWatchlist(movie.id);
       setInWatchlist(true);
     }
+  }
+
+  async function openTrailer() {
+    if (!trailer) return;
+    await openBrowserAsync(`https://www.youtube.com/watch?v=${trailer.key}`);
+  }
+
+  async function shareMovie() {
+    if (!movie) return;
+    await Share.share({
+      title: movie.title,
+      message: `Check out ${movie.title} — https://www.themoviedb.org/movie/${movie.id}`,
+    });
   }
 
   if (loading) {
@@ -76,25 +106,27 @@ export default function MovieDetailScreen() {
   const year = movie.release_date?.split('-')[0];
   const hours = Math.floor(movie.runtime / 60);
   const mins = movie.runtime % 60;
+  const director = credits?.crew.find((c) => c.job === 'Director');
+  const topCast = credits?.cast.slice(0, 15) ?? [];
 
   return (
     <ScrollView className="flex-1 bg-white dark:bg-black">
       <Image
-        source={movie.backdrop_path ? `${IMAGE_BASE}${movie.backdrop_path}` : null}
+        source={movie.backdrop_path ? `${BACKDROP_URL}${movie.backdrop_path}` : null}
         style={{ width: '100%', aspectRatio: 16 / 9 }}
         className="bg-gray-200 dark:bg-gray-800"
       />
 
       <View className="flex-row px-4 -mt-16 mb-4 gap-4">
         <Image
-          source={movie.poster_path ? `${IMAGE_BASE}${movie.poster_path}` : null}
+          source={movie.poster_path ? `${IMAGE_URL}${movie.poster_path}` : null}
           className="w-28 rounded-xl bg-gray-300 dark:bg-gray-700"
           style={{ aspectRatio: 2 / 3 }}
         />
         <View className="flex-1 pt-16">
           <Text
-            className="text-black dark:text-white text-5xl font-bold"
-            numberOfLines={2}>
+            className="text-black dark:text-white text-xl font-bold"
+            numberOfLines={3}>
             {movie.title}
           </Text>
           <Text className="text-gray-500 text-sm mt-1">
@@ -103,6 +135,11 @@ export default function MovieDetailScreen() {
           <Text className="text-yellow-500 text-sm mt-1">
             ⭐ {movie.vote_average.toFixed(1)} / 10
           </Text>
+          {director && (
+            <Text className="text-gray-500 text-xs mt-1">
+              Dir. {director.name}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -129,19 +166,111 @@ export default function MovieDetailScreen() {
           {movie.overview}
         </Text>
 
-        <Pressable
-          onPress={toggleWatchlist}
-          className={`py-4 rounded-2xl items-center mb-8 ${
-            inWatchlist ? 'bg-gray-200 dark:bg-gray-700' : 'bg-red-600'
-          }`}>
-          <Text
-            className={`font-bold text-base ${
-              inWatchlist ? 'text-black dark:text-white' : 'text-white'
+        <View className="flex-row gap-3 mb-8">
+          <Pressable
+            onPress={toggleWatchlist}
+            className={`flex-1 py-4 rounded-2xl items-center ${
+              inWatchlist ? 'bg-gray-200 dark:bg-gray-700' : 'bg-red-600'
             }`}>
-            {inWatchlist ? '✓ In Watchlist' : '+ Add to Watchlist'}
-          </Text>
-        </Pressable>
+            <Text
+              className={`font-bold text-sm ${
+                inWatchlist ? 'text-black dark:text-white' : 'text-white'
+              }`}>
+              {inWatchlist ? '✓ Watchlist' : '+ Watchlist'}
+            </Text>
+          </Pressable>
+
+          {trailer && (
+            <Pressable
+              onPress={openTrailer}
+              className="flex-1 py-4 rounded-2xl items-center bg-gray-100 dark:bg-gray-800">
+              <Text className="text-black dark:text-white font-bold text-sm">
+                ▶ Trailer
+              </Text>
+            </Pressable>
+          )}
+
+          <Pressable
+            onPress={shareMovie}
+            className="py-4 px-5 rounded-2xl items-center bg-gray-100 dark:bg-gray-800">
+            <Text className="text-black dark:text-white font-bold text-sm">
+              ↑ Share
+            </Text>
+          </Pressable>
+        </View>
       </View>
+
+      {topCast.length > 0 && (
+        <View className="mb-6">
+          <Text className="text-black dark:text-white text-lg font-bold px-4 mb-3">
+            Cast
+          </Text>
+          <FlatList
+            data={topCast}
+            keyExtractor={(item: CastMember) => item.id.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+            renderItem={({ item }: { item: CastMember }) => (
+              <View className="w-20 items-center">
+                <Image
+                  source={
+                    item.profile_path
+                      ? `${IMAGE_URL}${item.profile_path}`
+                      : null
+                  }
+                  className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-800"
+                />
+                <Text
+                  className="text-black dark:text-white text-xs font-medium mt-2 text-center"
+                  numberOfLines={2}>
+                  {item.name}
+                </Text>
+                <Text
+                  className="text-gray-500 text-xs text-center"
+                  numberOfLines={1}>
+                  {item.character}
+                </Text>
+              </View>
+            )}
+          />
+        </View>
+      )}
+
+      {similar.length > 0 && (
+        <View className="mb-8">
+          <Text className="text-black dark:text-white text-lg font-bold px-4 mb-3">
+            Similar Movies
+          </Text>
+          <FlatList
+            data={similar}
+            keyExtractor={(item: Movie) => item.id.toString()}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+            renderItem={({ item }: { item: Movie }) => (
+              <Pressable
+                className="w-32"
+                onPress={() => {}}>
+                <Image
+                  source={
+                    item.poster_path
+                      ? `${IMAGE_URL}${item.poster_path}`
+                      : null
+                  }
+                  className="w-32 rounded-xl bg-gray-200 dark:bg-gray-800"
+                  style={{ aspectRatio: 2 / 3 }}
+                />
+                <Text
+                  className="text-black dark:text-white text-xs font-medium mt-1"
+                  numberOfLines={2}>
+                  {item.title}
+                </Text>
+              </Pressable>
+            )}
+          />
+        </View>
+      )}
     </ScrollView>
   );
 }

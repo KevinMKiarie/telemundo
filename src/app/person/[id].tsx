@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,6 +15,7 @@ import { IMAGE_URL, fetchPerson, fetchPersonMovies } from '../lib/tmdb';
 export default function PersonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const personId = Number(id);
 
   const [person, setPerson] = useState<Person | null>(null);
@@ -31,6 +32,7 @@ export default function PersonScreen() {
           fetchPersonMovies(personId),
         ]);
         setPerson(personData);
+        navigation.setOptions({ title: personData.name });
         const sorted = movieData.cast
           .filter((m) => m.poster_path)
           .sort((a, b) => b.popularity - a.popularity);

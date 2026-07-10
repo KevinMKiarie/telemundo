@@ -76,3 +76,20 @@ export type PaginatedResponse<T> = {
   total_pages: number;
   total_results: number;
 };
+
+export type WatchProvider = {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+};
+
+export type WatchProviderRegion = {
+  link: string;
+  flatrate?: WatchProvider[];
+  rent?: WatchProvider[];
+  buy?: WatchProvider[];
+};
+
+export type WatchProvidersResponse = {
+  results: Record<string, WatchProviderRegion>;
+};

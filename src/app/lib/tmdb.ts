@@ -8,6 +8,7 @@ import type {
   Person,
   Movie,
   Video,
+  WatchProvidersResponse,
 } from '../../types/tmdb';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
@@ -103,4 +104,8 @@ export async function fetchPerson(id: number): Promise<Person> {
 
 export async function fetchPersonMovies(id: number): Promise<{ cast: Movie[]; crew: Movie[] }> {
   return getCached(`/person/${id}/movie_credits`, TTL.PERSON);
+}
+
+export async function fetchWatchProviders(id: number): Promise<WatchProvidersResponse> {
+  return getCached(`/movie/${id}/watch/providers`, TTL.DETAILS);
 }

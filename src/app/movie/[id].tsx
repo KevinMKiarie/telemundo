@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
 import {
   ActivityIndicator,
@@ -12,8 +12,8 @@ import {
   View,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import type { CastMember, Movie, Video } from '../../types/tmdb';
+import { useEffect, useState } from 'react';
+import type { CastMember, Movie, Video, WatchProvider } from '../../types/tmdb';
 import { streamAITake } from '../lib/ai';
 import { useWatchlistStore } from '../store/watchlist';
 import {
@@ -23,11 +23,13 @@ import {
   fetchMovieDetails,
   fetchMovieVideos,
   fetchSimilarMovies,
+  fetchWatchProviders,
 } from '../lib/tmdb';
 
 export default function MovieDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const movieId = Number(id);
 
   const { data, isLoading } = useQuery({
@@ -38,11 +40,16 @@ export default function MovieDetailScreen() {
         fetchMovieCredits(movieId),
         fetchMovieVideos(movieId),
         fetchSimilarMovies(movieId),
+        fetchWatchProviders(movieId),
       ]),
   });
 
   const [aiText, setAiText] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+
+  useEffect(() => {
+    if (data) navigation.setOptions({ title: data[0].title });
+  }, [data]);
 
   const inWatchlist = useWatchlistStore((s) => s.has(movieId));
   const addToWatchlist = useWatchlistStore((s) => s.add);
@@ -104,8 +111,9 @@ export default function MovieDetailScreen() {
     );
   }
 
-  const [movie, credits, videos, similarMovies] = data;
+  const [movie, credits, videos, similarMovies, watchProviders] = data;
   const similar = similarMovies.results.slice(0, 10);
+  const providers = watchProviders.results?.US ?? null;
   const trailer: Video | null =
     videos.results.find((v) => v.site === 'YouTube' && v.type === 'Trailer' && v.official) ??
     videos.results.find((v) => v.site === 'YouTube' && v.type === 'Trailer') ??
@@ -282,6 +290,28 @@ export default function MovieDetailScreen() {
           />
         </View>
       )}
+      {providers && (
+        <View className="px-4 mb-8">
+          <Text className="text-black dark:text-white text-lg font-bold mb-3">
+            Where to Watch
+          </Text>
+          {providers.flatrate && (
+            <ProviderRow label="Stream" providers={providers.flatrate} link={providers.link} />
+          )}
+          {providers.rent && (
+            <ProviderRow label="Rent" providers={providers.rent} link={providers.link} />
+          )}
+          {providers.buy && (
+            <ProviderRow label="Buy" providers={providers.buy} link={providers.link} />
+          )}
+          {!providers.flatrate && !providers.rent && !providers.buy && (
+            <Text className="text-gray-500 text-sm">
+              Not available on streaming in your region.
+            </Text>
+          )}
+        </View>
+      )}
+
       <View className="px-4 mb-10">
         <Text className="text-black dark:text-white text-lg font-bold mb-3">
           AI Take
@@ -303,5 +333,39 @@ export default function MovieDetailScreen() {
         )}
       </View>
     </ScrollView>
+  );
+}
+
+function ProviderRow({
+  label,
+  providers,
+  link,
+}: {
+  label: string;
+  providers: WatchProvider[];
+  link: string;
+}) {
+  return (
+    <View className="mb-4">
+      <Text className="text-gray-500 text-xs font-semibold uppercase mb-2">{label}</Text>
+      <View className="flex-row flex-wrap gap-3">
+        {providers.map((p) => (
+          <Pressable
+            key={p.provider_id}
+            onPress={() => openBrowserAsync(link)}
+            className="items-center gap-1">
+            <Image
+              source={`https://image.tmdb.org/t/p/original${p.logo_path}`}
+              style={{ width: 44, height: 44, borderRadius: 10 }}
+              className="bg-gray-200 dark:bg-gray-800"
+            />
+            <Text className="text-gray-500 text-xs text-center" numberOfLines={1}
+              style={{ maxWidth: 56 }}>
+              {p.provider_name}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }

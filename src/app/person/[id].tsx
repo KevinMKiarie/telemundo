@@ -77,7 +77,8 @@ export default function PersonScreen() {
               ? `${IMAGE_URL}${person.profile_path}`
               : null
           }
-          className="w-36 h-36 rounded-full bg-gray-200 dark:bg-gray-800"
+          style={{ width: 144, height: 144, borderRadius: 72 }}
+          className="bg-gray-200 dark:bg-gray-800"
         />
         <Text className="text-black dark:text-white text-2xl font-bold mt-4 text-center">
           {person.name}

@@ -118,3 +118,30 @@ assets/
 
 - **TMDB** — rate limited to 35 requests per 10 seconds with exponential backoff retry. Responses are cached in memory with TTL (5 min trending, 30 min details, 1 hr genres).
 - **Groq** — uses `llama-3.1-8b-instant`, streamed via `ReadableStream`. Free tier allows 14,400 requests/day.
+
+## Screenshots
+![alt text](image.png)
+
+### movie[id]
+![alt text](image-1.png)
+
+### movie[id]
+![alt text](image-2.png)
+
+### movie[id] --AIªsummary 
+![alt text](image-3.png)
+
+### movie[persona[id]]
+![alt text](image-4.png)
+
+### where to watch suggestions
+![alt text](image-5.png)
+
+### category listings
+![alt text](image-6.png)
+
+### Remember search
+![alt text](image-7.png)
+
+### watchlist
+![alt text](image-8.png)

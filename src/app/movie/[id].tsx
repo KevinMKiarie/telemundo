@@ -12,7 +12,9 @@ import {
   View,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import type { CastMember, Movie, Video } from '../../types/tmdb';
+import { streamAITake } from '../lib/ai';
 import { useWatchlistStore } from '../store/watchlist';
 import {
   BACKDROP_URL,
@@ -39,6 +41,9 @@ export default function MovieDetailScreen() {
       ]),
   });
 
+  const [aiText, setAiText] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+
   const inWatchlist = useWatchlistStore((s) => s.has(movieId));
   const addToWatchlist = useWatchlistStore((s) => s.add);
   const removeFromWatchlist = useWatchlistStore((s) => s.remove);
@@ -55,6 +60,24 @@ export default function MovieDetailScreen() {
   async function openTrailer() {
     if (!trailer) return;
     await openBrowserAsync(`https://www.youtube.com/watch?v=${trailer.key}`);
+  }
+
+  async function getAITake() {
+    if (!movie || aiLoading) return;
+    setAiText('');
+    setAiLoading(true);
+    try {
+      await streamAITake(
+        movie.title,
+        movie.genres.map((g) => g.name),
+        movie.overview,
+        (chunk) => setAiText((prev) => prev + chunk)
+      );
+    } catch {
+      setAiText('Could not load AI take. Try again.');
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   async function shareMovie() {
@@ -259,6 +282,26 @@ export default function MovieDetailScreen() {
           />
         </View>
       )}
+      <View className="px-4 mb-10">
+        <Text className="text-black dark:text-white text-lg font-bold mb-3">
+          AI Take
+        </Text>
+        {aiText ? (
+          <Text className="text-black dark:text-white text-sm leading-6">
+            {aiText}
+            {aiLoading ? <Text className="text-red-500"> |</Text> : null}
+          </Text>
+        ) : (
+          <Pressable
+            onPress={getAITake}
+            disabled={aiLoading}
+            className="py-4 rounded-2xl items-center bg-gray-100 dark:bg-gray-800">
+            <Text className="text-black dark:text-white font-bold text-sm">
+              {aiLoading ? 'Thinking...' : '✦ Get AI Take'}
+            </Text>
+          </Pressable>
+        )}
+      </View>
     </ScrollView>
   );
 }

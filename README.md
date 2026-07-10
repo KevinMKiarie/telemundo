@@ -120,28 +120,30 @@ assets/
 - **Groq** — uses `llama-3.1-8b-instant`, streamed via `ReadableStream`. Free tier allows 14,400 requests/day.
 
 ## Screenshots
-![alt text](image.png)
 
-### movie[id]
-![alt text](image-1.png)
+### Discover
+![Discover](assets/images/image.png)
 
-### movie[id]
-![alt text](image-2.png)
+### Movie Detail
+![Movie Detail](assets/images/image-1.png)
 
-### movie[id] --AIªsummary 
-![alt text](image-3.png)
+### Movie Detail
+![Movie Detail](assets/images/image-2.png)
 
-### movie[persona[id]]
-![alt text](image-4.png)
+### AI Summary
+![AI Summary](assets/images/image-3.png)
 
-### where to watch suggestions
-![alt text](image-5.png)
+### Person / Actor
+![Person](assets/images/image-4.png)
 
-### category listings
-![alt text](image-6.png)
+### Where to Watch
+![Where to Watch](assets/images/image-5.png)
 
-### Remember search
-![alt text](image-7.png)
+### Category Listings
+![Category Listings](assets/images/image-6.png)
 
-### watchlist
-![alt text](image-8.png)
+### Recent Searches
+![Recent Searches](assets/images/image-7.png)
+
+### Watchlist
+![Watchlist](assets/images/image-8.png)

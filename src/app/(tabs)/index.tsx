@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -11,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import MovieCardSkeleton from '../components/MovieCardSkeleton';
 import type { Genre, Movie } from '../../types/tmdb';
 import {
   IMAGE_URL,
@@ -188,8 +190,13 @@ export default function DiscoverScreen() {
           <Text className="text-red-500 text-center">{error}</Text>
         </View>
       ) : loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#E50914" />
+        <View style={{ flex: 1, paddingHorizontal: 12, paddingTop: 8, gap: 12 }}>
+          {[0, 1, 2, 3].map((row) => (
+            <View key={row} style={{ flexDirection: 'row', gap: 12 }}>
+              <MovieCardSkeleton />
+              <MovieCardSkeleton />
+            </View>
+          ))}
         </View>
       ) : (
         <FlatList
@@ -218,7 +225,10 @@ export default function DiscoverScreen() {
           renderItem={({ item }) => (
             <Pressable
               className="flex-1"
-              onPress={() => router.push(`/movie/${item.id}`)}>
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push(`/movie/${item.id}`);
+              }}>
               <Image
                 source={item.poster_path ? `${IMAGE_URL}${item.poster_path}` : null}
                 className="w-full rounded-xl bg-gray-200 dark:bg-gray-800"

@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
 import { useEffect, useState } from 'react';
@@ -66,6 +67,7 @@ export default function MovieDetailScreen() {
 
   async function toggleWatchlist() {
     if (!movie) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (inWatchlist) {
       await removeFromWatchlist(movie.id);
       setInWatchlist(false);

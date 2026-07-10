@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
@@ -69,9 +70,10 @@ export default function GenresScreen() {
         const meta = GENRE_META[item.id] ?? DEFAULT_META;
         return (
           <Pressable
-            onPress={() =>
-              router.push(`/genre/${item.id}?name=${encodeURIComponent(item.name)}`)
-            }
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push(`/genre/${item.id}?name=${encodeURIComponent(item.name)}`);
+            }}
             className="flex-1 h-24 rounded-2xl items-center justify-center gap-2"
             style={{ backgroundColor: meta.color }}>
             <Ionicons name={meta.icon} size={28} color="white" />

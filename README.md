@@ -1,56 +1,120 @@
-# Welcome to your Expo app 👋
+# Telemundo
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A full-featured movie browser and watchlist app built with Expo SDK 57, React Native, and TypeScript. Browse trending movies, search by title or genre, save a watchlist, and get AI-powered takes on any film.
 
-## Get started
+## Features
 
-1. Install dependencies
+- Browse movies by category — Trending, Popular, Top Rated, Upcoming, Now Playing
+- Filter by genre with a horizontal chip selector
+- Full-text movie search with debounce and recent search history
+- Movie detail screen with cast, trailer, similar movies, and share
+- Person screen with biography and filmography
+- Persistent watchlist backed by AsyncStorage
+- Streaming AI movie take powered by Groq (llama-3.1-8b-instant)
+- Skeleton loaders and haptic feedback throughout
+- Dark mode support
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. Start the app
+| Layer | Library |
+|-------|---------|
+| Framework | Expo SDK 57 + Expo Router |
+| Language | TypeScript |
+| Styling | NativeWind v4 (Tailwind CSS) |
+| State | Zustand |
+| Data fetching | TanStack React Query |
+| Storage | AsyncStorage |
+| Images | expo-image |
+| Haptics | expo-haptics |
+| Browser | expo-web-browser |
+| AI | Groq API (streaming) |
+| Data | TMDB API |
 
-   ```bash
-   npx expo start
-   ```
+## Prerequisites
 
-In the output, you'll find options to open the app in a
+- Node.js 18+
+- Xcode (for iOS simulator or device builds)
+- A [TMDB API](https://www.themoviedb.org/settings/api) account — use the **Read Access Token** (long JWT)
+- A [Groq](https://console.groq.com) account — free, no credit card required
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Setup
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+**1. Clone and install**
 
 ```bash
-npm run reset-project
+git clone <your-repo-url>
+cd telemundo
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+**2. Create your `.env` file**
 
-### Other setup steps
+```bash
+cp .env.example .env
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testin`g/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Then fill in your keys:
 
-## Learn more
+```
+EXPO_PUBLIC_TMDB_TOKEN=your_tmdb_read_access_token
+EXPO_PUBLIC_GROQ_API_KEY=your_groq_api_key
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+> The TMDB token is the long JWT Bearer token, not the short API key.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+**3. Build and run**
 
-## Join the community
+For iOS simulator:
+```bash
+npx expo run:ios
+```
 
-Join our community of developers creating universal apps.
+For a specific simulator:
+```bash
+npx expo run:ios --device "<simulator name>"
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+For a physical iPhone — open Xcode, connect your device, select it from the device dropdown, and hit Play. Then run:
+```bash
+npx expo start
+```
+
+> **Note:** Expo Go is not supported. A native development build is required.
+
+## Project Structure
+
+```
+src/
+  app/
+    (tabs)/         # Tab screens: Discover, Genres, Search, Watchlist
+    movie/[id].tsx  # Movie detail screen
+    person/[id].tsx # Person / actor screen
+    genre/[id].tsx  # Genre movie list screen
+    lib/
+      tmdb.ts       # TMDB API client (rate limiting, caching, retry)
+      ai.ts         # Groq streaming AI take
+      storage.ts    # AsyncStorage helpers (watchlist, recent searches)
+      cache.ts      # In-memory TTL cache
+      rateLimit.ts  # Sliding window rate limiter + request deduplication
+    store/
+      watchlist.ts  # Zustand watchlist store
+    components/
+      Skeleton.tsx          # Animated pulse skeleton block
+      MovieCardSkeleton.tsx # Movie card shaped skeleton
+  types/
+    tmdb.ts         # TypeScript interfaces for TMDB API responses
+assets/
+  images/           # App icon and splash screen
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `EXPO_PUBLIC_TMDB_TOKEN` | TMDB Read Access Token (JWT) |
+| `EXPO_PUBLIC_GROQ_API_KEY` | Groq API key for AI take feature |
+
+## API Details
+
+- **TMDB** — rate limited to 35 requests per 10 seconds with exponential backoff retry. Responses are cached in memory with TTL (5 min trending, 30 min details, 1 hr genres).
+- **Groq** — uses `llama-3.1-8b-instant`, streamed via `ReadableStream`. Free tier allows 14,400 requests/day.

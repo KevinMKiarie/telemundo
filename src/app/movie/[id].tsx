@@ -2,7 +2,6 @@ import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
-import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,8 +11,9 @@ import {
   Text,
   View,
 } from 'react-native';
-import type { CastMember, Credits, Movie, MovieDetail, Video } from '../../types/tmdb';
-import { addToWatchlist, isInWatchlist, removeFromWatchlist } from '../lib/storage';
+import { useQuery } from '@tanstack/react-query';
+import type { CastMember, Movie, Video } from '../../types/tmdb';
+import { useWatchlistStore } from '../store/watchlist';
 import {
   BACKDROP_URL,
   IMAGE_URL,
@@ -28,52 +28,27 @@ export default function MovieDetailScreen() {
   const router = useRouter();
   const movieId = Number(id);
 
-  const [movie, setMovie] = useState<MovieDetail | null>(null);
-  const [credits, setCredits] = useState<Credits | null>(null);
-  const [similar, setSimilar] = useState<Movie[]>([]);
-  const [trailer, setTrailer] = useState<Video | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [inWatchlist, setInWatchlist] = useState(false);
+  const { data, isLoading } = useQuery({
+    queryKey: ['movie', movieId],
+    queryFn: () =>
+      Promise.all([
+        fetchMovieDetails(movieId),
+        fetchMovieCredits(movieId),
+        fetchMovieVideos(movieId),
+        fetchSimilarMovies(movieId),
+      ]),
+  });
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [details, creds, videos, similarMovies, saved] = await Promise.all([
-          fetchMovieDetails(movieId),
-          fetchMovieCredits(movieId),
-          fetchMovieVideos(movieId),
-          fetchSimilarMovies(movieId),
-          isInWatchlist(movieId),
-        ]);
-
-        setMovie(details);
-        setCredits(creds);
-        setSimilar(similarMovies.results.slice(0, 10));
-        setInWatchlist(saved);
-
-        const officialTrailer = videos.results.find(
-          (v) => v.site === 'YouTube' && v.type === 'Trailer' && v.official
-        ) ?? videos.results.find(
-          (v) => v.site === 'YouTube' && v.type === 'Trailer'
-        ) ?? null;
-
-        setTrailer(officialTrailer);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [movieId]);
+  const inWatchlist = useWatchlistStore((s) => s.has(movieId));
+  const addToWatchlist = useWatchlistStore((s) => s.add);
+  const removeFromWatchlist = useWatchlistStore((s) => s.remove);
 
   async function toggleWatchlist() {
-    if (!movie) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (inWatchlist) {
-      await removeFromWatchlist(movie.id);
-      setInWatchlist(false);
+      await removeFromWatchlist(movieId);
     } else {
-      await addToWatchlist(movie.id);
-      setInWatchlist(true);
+      await addToWatchlist(movieId);
     }
   }
 
@@ -90,7 +65,7 @@ export default function MovieDetailScreen() {
     });
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-white dark:bg-black">
         <ActivityIndicator size="large" color="#E50914" />
@@ -98,13 +73,20 @@ export default function MovieDetailScreen() {
     );
   }
 
-  if (!movie) {
+  if (!data) {
     return (
       <View className="flex-1 items-center justify-center bg-white dark:bg-black">
         <Text className="text-red-500">Movie not found.</Text>
       </View>
     );
   }
+
+  const [movie, credits, videos, similarMovies] = data;
+  const similar = similarMovies.results.slice(0, 10);
+  const trailer: Video | null =
+    videos.results.find((v) => v.site === 'YouTube' && v.type === 'Trailer' && v.official) ??
+    videos.results.find((v) => v.site === 'YouTube' && v.type === 'Trailer') ??
+    null;
 
   const year = movie.release_date?.split('-')[0];
   const hours = Math.floor(movie.runtime / 60);
@@ -258,7 +240,6 @@ export default function MovieDetailScreen() {
               <Pressable
                 className="w-32"
                 onPress={() => router.push(`/movie/${item.id}`)}>
-
                 <Image
                   source={
                     item.poster_path

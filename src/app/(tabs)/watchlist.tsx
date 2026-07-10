@@ -1,43 +1,43 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
-import { getWatchlist } from '../lib/storage';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { useQueries } from '@tanstack/react-query';
+import { useWatchlistStore } from '../store/watchlist';
 import { fetchMovieDetails, IMAGE_URL } from '../lib/tmdb';
-
-type Movie = {
-  id: number;
-  title: string;
-  poster_path: string | null;
-  vote_average: number;
-  release_date: string;
-};
 
 export default function WatchlistScreen() {
   const router = useRouter();
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
+  const storeIds = useWatchlistStore((s) => s.ids);
+  const loaded = useWatchlistStore((s) => s.loaded);
+  const load = useWatchlistStore((s) => s.load);
+  const ids = [...storeIds];
 
   useFocusEffect(
     useCallback(() => {
-      async function load() {
-        setLoading(true);
-        try {
-          const ids = await getWatchlist();
-          const details = await Promise.all(
-            ids.map((id) => fetchMovieDetails(id))
-          );
-          setMovies(details);
-        } finally {
-          setLoading(false);
-        }
-      }
       load();
     }, [])
   );
 
-  if (!loading && movies.length === 0) {
+  const results = useQueries({
+    queries: ids.map((id) => ({
+      queryKey: ['movie', id],
+      queryFn: () => fetchMovieDetails(id),
+    })),
+  });
+
+  const loading = !loaded || results.some((r) => r.isLoading);
+  const movies = results.flatMap((r) => (r.data ? [r.data] : []));
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-white dark:bg-black">
+        <ActivityIndicator size="large" color="#E50914" />
+      </View>
+    );
+  }
+
+  if (movies.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-white dark:bg-black px-8">
         <Text className="text-5xl mb-4">🎬</Text>
